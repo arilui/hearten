@@ -18,5 +18,5 @@ def db_engine():
         # CI sets REQUIRE_DB, because there a skipped database test would hide a failure.
         if os.getenv("REQUIRE_DB") == "1":
             raise
-        pytest.skip("Postgres isn't reachable. Start it with: docker compose up -d db")
+        pytest.skip("Postgres isn't reachable. Check DATABASE_URL in your .env file.")
     return engine

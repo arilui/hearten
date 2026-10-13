@@ -12,25 +12,23 @@ Educational only; not medical advice. Personal targets come from your care team.
 
 ## Local development
 
-You need Python 3.12+ and Docker Desktop.
+You need Python 3.12+ and a Postgres database. The simplest option is a free [Neon](https://neon.tech) database: create a project, then copy its connection string.
 
 ```bash
-# 1. Start Postgres
-docker compose up -d db
-
-# 2. Install the backend (from the repo root)
 cd backend
 python -m venv .venv
 .venv\Scripts\activate          # macOS/Linux: source .venv/bin/activate
 pip install -e ".[dev]"
 
-# 3. Create the tables, then run the tests and the API
-alembic upgrade head
-pytest
+# Point the app at your database: copy .env.example to .env in the repo root
+# and paste your connection string into DATABASE_URL.
+
+alembic upgrade head             # create the tables
+pytest                           # run the tests
 uvicorn app.main:app --reload    # http://127.0.0.1:8000/health
 ```
 
-Settings come from environment variables; copy `.env.example` to `.env` to change them.
+Prefer a local database? `docker compose up -d db` starts one, and the `.env.example` comment shows the matching URL.
 
 ## Project layout
 
@@ -39,7 +37,7 @@ backend/
   app/           FastAPI app, settings, database models
   migrations/    Alembic database migrations
   tests/         pytest suite (runs in CI against a real Postgres)
-docker-compose.yml   local Postgres
+docker-compose.yml   optional local Postgres
 .github/workflows/   CI: lint, migrations up/down/up, tests
 ```
 
