@@ -1,3 +1,5 @@
+import os
+
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
@@ -13,5 +15,7 @@ def db_engine():
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
     except OperationalError:
+        if os.getenv("REQUIRE_DB") == "1":  # set in CI, where a skipped DB test would hide a failure
+            raise
         pytest.skip("Postgres isn't reachable. Start it with: docker compose up -d db")
     return engine

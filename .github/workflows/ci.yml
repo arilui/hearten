@@ -29,11 +29,12 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://hearten:hearten@localhost:5432/hearten
+      REQUIRE_DB: "1"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -52,4 +53,4 @@ jobs:
           alembic upgrade head
 
       - name: Tests
-        run: pytest -v
+        run: pytest -v -rs
