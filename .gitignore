@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Environment
+.env
+
+# Raw downloaded datasets (rebuilt by the import scripts)
+data/raw/
+
+# Node / Next.js
+node_modules/
+.next/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/

@@ -1,0 +1,22 @@
+# Local development database.
+#   docker compose up -d db      start Postgres in the background
+#   docker compose down          stop it (data is kept in the named volume)
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: hearten
+      POSTGRES_PASSWORD: hearten
+      POSTGRES_DB: hearten
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hearten -d hearten"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
