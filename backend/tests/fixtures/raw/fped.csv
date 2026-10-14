@@ -1,0 +1,4 @@
+FOODCODE,DESCRIPTION,ADD_SUGARS (tsp eq),A_DRINKS (no. of drinks)
+11111000,"Milk, whole",0.0,0.0
+93401010,"Wine, red",0.0,0.68
+55555555,"Old code, not in FNDDS",1.0,0.0

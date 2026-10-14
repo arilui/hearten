@@ -1,0 +1,4 @@
+year,food_code,mod_code,food_description,method,method_description,nhanes,price_100gm
+2015/2016,11111000.0,0.0,"Milk, whole",1,Links to FNDDS,,0.08
+2017/2018,11111000.0,0.0,"Milk, whole",1,Links to FNDDS,,0.10
+2017/2018,72118300.0,0.0,"Kale, raw",1,Links to FNDDS,,0.50

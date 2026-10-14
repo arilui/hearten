@@ -30,6 +30,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+psycopg://hearten:hearten@localhost:5432/hearten
       REQUIRE_DB: "1"
+      ALLOW_DESTRUCTIVE_TESTS: "1"
 
     steps:
       - uses: actions/checkout@v5
@@ -41,7 +42,7 @@ jobs:
           cache-dependency-path: backend/pyproject.toml
 
       - name: Install
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[dev,data]"
 
       - name: Lint
         run: ruff check .

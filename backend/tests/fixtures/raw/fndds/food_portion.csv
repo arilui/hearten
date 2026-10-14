@@ -1,0 +1,4 @@
+"id","fdc_id","seq_num","amount","measure_unit_id","portion_description","modifier","gram_weight","data_points","footnote","min_year_acquired"
+"1","1","1","","9999","1 cup","10205","244.0","","",""
+"2","1","2","","9999","Quantity not specified","90000","0.0","","",""
+"3","2","1","","9999","1 cup, chopped","10205","67.0","","",""
