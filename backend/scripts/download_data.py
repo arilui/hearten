@@ -22,6 +22,10 @@ SOURCES = {
     # FNDDS 2021-2023 (survey foods) from FoodData Central, released October 2024.
     "fndds.zip": "https://fdc.nal.usda.gov/fdc-datasets/"
     "FoodData_Central_survey_food_csv_2024-10-31.zip",
+    # SR Legacy: the basic-ingredient database FNDDS recipes are built from (flour,
+    # salt, spices, raw meats, dry grains). Final release, April 2018.
+    "sr_legacy.zip": "https://fdc.nal.usda.gov/fdc-datasets/"
+    "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
     # Added sugars per 100 g for each FNDDS food (Food Patterns Equivalents Database).
     "fped_1720.xls": "https://www.ars.usda.gov/ARSUserFiles/80400530/apps/FPED_1720.xls",
     # Purchase to Plate national average prices, all periods.
@@ -33,6 +37,7 @@ SOURCES = {
 
 MANUAL_PAGES = {
     "fndds.zip": "https://fdc.nal.usda.gov/download-datasets (FNDDS 2021-2023, CSV)",
+    "sr_legacy.zip": "https://fdc.nal.usda.gov/download-datasets (SR Legacy, April 2018, CSV)",
     "fped_1720.xls": "https://www.ars.usda.gov/northeast-area/beltsville-md-bhnrc/"
     "beltsville-human-nutrition-research-center/food-surveys-research-group/docs/fped-databases/",
     "ppnap.zip": "https://www.ers.usda.gov/data-products/purchase-to-plate (PP-NAP, CSV)",
@@ -59,7 +64,7 @@ def download() -> bool:
             print(f"  FAILED: {e}")
             print(f"  Download it by hand from {MANUAL_PAGES[name]}")
             print(f"  and save it as {target}")
-    for name in ("fndds.zip", "ppnap.zip"):
+    for name in ("fndds.zip", "sr_legacy.zip", "ppnap.zip"):
         path = RAW / name
         if path.exists():
             with zipfile.ZipFile(path) as z:
@@ -87,6 +92,14 @@ def inspect() -> None:
     for f in fndds_files:
         if f.name in wanted:
             show(f"FNDDS {f.name}", pd.read_csv(f, low_memory=False), 3)
+
+    sr_files = sorted((RAW / "sr_legacy").rglob("*.csv")) if (RAW / "sr_legacy").exists() else []
+    print("\nSR Legacy files:", [f.name for f in sr_files])
+    for f in sr_files:
+        if f.name in {"food.csv", "sr_legacy_food.csv", "food_portion.csv", "nutrient.csv"}:
+            show(f"SR Legacy {f.name}", pd.read_csv(f, low_memory=False), 3)
+        elif f.name == "food_nutrient.csv":
+            show("SR Legacy food_nutrient.csv (first rows only)", pd.read_csv(f, nrows=5), 3)
 
     if (RAW / "fped_1720.xls").exists():
         fped = pd.read_excel(RAW / "fped_1720.xls")
