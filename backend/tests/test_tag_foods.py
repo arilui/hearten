@@ -8,8 +8,8 @@ from sqlalchemy import text
 from scripts.import_data import build_tables, load, read_fndds, read_fped, read_prices
 from scripts.tag_foods import (
     compute_tags,
-    read_fped_groups,
     read_foods,
+    read_fped_groups,
     read_ingredients,
     write_tags,
 )

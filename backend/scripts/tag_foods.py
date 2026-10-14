@@ -145,8 +145,8 @@ def write_tags(engine, tags: pd.DataFrame) -> None:
             buffer = io.StringIO()
             tags[["food_code", "tag", "set_by"]].to_csv(buffer, index=False, header=False)
             buffer.seek(0)
-            with cur.copy("COPY food_tag (food_code, tag, set_by) FROM STDIN WITH (FORMAT csv)") \
-                    as copy:
+            sql = "COPY food_tag (food_code, tag, set_by) FROM STDIN WITH (FORMAT csv)"
+            with cur.copy(sql) as copy:
                 copy.write(buffer.getvalue())
         raw.commit()
     except Exception:

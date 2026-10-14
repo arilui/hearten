@@ -45,7 +45,7 @@ jobs:
         run: pip install -e ".[dev,data]"
 
       - name: Lint
-        run: ruff check .
+        run: ruff check --output-format=github .
 
       - name: Migrations apply, roll back and re-apply cleanly
         run: |
