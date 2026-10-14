@@ -42,7 +42,7 @@ GENERIC_MARKERS = re.compile(
 CATEGORY_HEADS = {"spices", "leavening agents", "oil", "sugars", "syrups", "soup", "nuts",
                   "seeds", "beans", "sauce", "beverages", "fish", "crustaceans",
                   "mollusks", "cereals", "alcoholic beverage", "salad dressing", "vinegar",
-                  "sweeteners", "game meat"}
+                  "sweeteners", "game meat", "cereals ready-to-eat"}
 
 # Words that mark a prepared dish or special product; penalized unless asked for.
 DISH_WORDS = {"soup", "salad", "sandwich", "pie", "casserole", "baby", "infant", "toddler",
@@ -50,7 +50,7 @@ DISH_WORDS = {"soup", "salad", "sandwich", "pie", "casserole", "baby", "infant",
               "meal", "kit", "puree", "pudding", "smoothie", "shake", "drink", "beverage",
               "sauce", "dip", "spread", "bar", "snack", "cereal", "candy", "dessert",
               "stew", "chowder", "burrito", "taco", "pizza", "burger", "roll", "dumpling",
-              "souffle", "bread", "lemonade", "limeade"}
+              "souffle", "lemonade", "limeade"}
 
 # Segments naming only part of a food ("Potatoes, raw, skin"; "Broccoli, leaves").
 PART_SEGMENT = re.compile(
@@ -91,6 +91,9 @@ SYNONYMS = [
     (r"\bkosher salt\b|\bsea salt\b|\btable salt\b", "salt table"),
     (r"\bblack pepper\b", "spices pepper black"),
     (r"\bbaking soda\b", "baking soda sodium bicarbonate"),
+    # Plain "soy sauce" is the soy-and-wheat kind; assuming wheat is also the safe
+    # default for gluten. Tamari is asked for by name.
+    (r"\bsoy sauce\b", "soy sauce wheat shoyu"),
     (r"\bparmesan\b", "cheese parmesan"),
     (r"\bcheddar\b", "cheese cheddar"),
     (r"\bmozzarella\b", "cheese mozzarella"),
@@ -163,7 +166,10 @@ def apply_synonyms(text: str) -> str:
 
 
 def _segments(description: str) -> list[str]:
-    return [s.strip() for s in normalize(description).split(",") if s.strip()]
+    # Parentheses hold synonyms and notes ("Chickpeas (garbanzo beans, bengal gram)");
+    # they still count as words, but mustn't split the name into segments.
+    text = re.sub(r"\([^)]*\)", " ", normalize(description))
+    return [s.strip() for s in text.split(",") if s.strip()]
 
 
 def _head_and_category(description: str) -> tuple[list[str], set[str]]:
@@ -290,3 +296,19 @@ def query_text(parsed) -> str:
     if parsed.unit == "can" and "canned" not in text:
         text += " canned"
     return text
+
+
+# FNDDS foods (dishes as eaten) start slightly behind SR Legacy ingredients, so a
+# plain ingredient wins when both fit; FNDDS still wins for prepared foods SR lacks.
+FNDDS_PENALTY = 0.5
+# Below this, the best candidate shares too little with the recipe line to trust.
+MIN_SCORE = 0.5
+
+
+def build_index(foods: list[tuple[int, str, str, int]]) -> FoodIndex:
+    """foods: (code, description, source, recipe_uses) with source 'sr_legacy' or 'fndds'."""
+    return FoodIndex(
+        [(code, desc) for code, desc, _, _ in foods],
+        usage={code: uses for code, _, _, uses in foods if uses},
+        bonus={code: -FNDDS_PENALTY for code, _, source, _ in foods if source == "fndds"},
+    )

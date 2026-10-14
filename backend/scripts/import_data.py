@@ -30,19 +30,20 @@ from pathlib import Path
 
 import pandas as pd
 
+from app import nutrients
 from scripts import sr_legacy
 
 RAW = Path(__file__).resolve().parents[2] / "data" / "raw"
 
 # Nutrients that exist only in FPED get ids far above FoodData Central's own.
-ADDED_SUGARS_ID = 900001
-ALCOHOLIC_DRINKS_ID = 900002
+ADDED_SUGARS_ID = nutrients.ADDED_SUGARS_G
+ALCOHOLIC_DRINKS_ID = nutrients.ALCOHOLIC_DRINKS
 # FPED measures added sugars in teaspoon equivalents; 1 tsp eq = 4.2 g
 # (FPED 2017-2018 Methodology and User Guide).
 GRAMS_PER_TSP_ADDED_SUGAR = 4.2
 
 PRICE_CURRENCY = "USD"
-TOTAL_SUGARS_NBR = 269
+TOTAL_SUGARS_NBR = nutrients.TOTAL_SUGARS_G
 
 
 @dataclass

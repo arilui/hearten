@@ -23,7 +23,7 @@ from pathlib import Path
 import pandas as pd
 
 from app.ingredients.grams import Portion, to_grams
-from app.ingredients.match import FoodIndex, query_text
+from app.ingredients.match import MIN_SCORE, FoodIndex, build_index, query_text
 from app.ingredients.parse import parse_line
 from scripts import sr_legacy
 
@@ -33,17 +33,30 @@ LINES = BACKEND / "data" / "eval" / "ingredient_lines.csv"
 GRAM_TOLERANCE = 0.25
 
 
-def build(sr_folder: Path, input_food: Path | None):
+def build(sr_folder: Path, input_food: Path | None, fndds_folder: Path | None = None):
+    """The same combined index the app uses: SR Legacy plus (optionally) FNDDS foods."""
     foods = sr_legacy.read_foods(sr_folder)
     portions = sr_legacy.read_portions(sr_folder, set(foods["fdc_id"]))
     usage = {}
     if input_food is not None and input_food.exists():
         usage = sr_legacy.usage_counts(pd.read_csv(input_food, low_memory=False), foods)
-    index = FoodIndex(list(zip(foods["fdc_id"], foods["description"], strict=True)), usage)
+    catalog = [(int(c), d, "sr_legacy", usage.get(int(c), 0))
+               for c, d in zip(foods["fdc_id"], foods["description"], strict=True)]
     by_food: dict[int, list[Portion]] = {}
     for row in portions.itertuples(index=False):
         by_food.setdefault(row.fdc_id, []).append(Portion(row.description, row.gram_weight))
-    return index, by_food
+
+    if fndds_folder is not None and fndds_folder.exists():
+        food = pd.read_csv(next(fndds_folder.rglob("food.csv")), low_memory=False)
+        food = food[food["data_type"] == "survey_fndds_food"]
+        catalog += [(int(c), d, "fndds", 0)
+                    for c, d in zip(food["fdc_id"], food["description"], strict=True)]
+        fp = pd.read_csv(next(fndds_folder.rglob("food_portion.csv")), low_memory=False)
+        fp = fp[fp["gram_weight"] > 0]
+        for row in fp.itertuples(index=False):
+            by_food.setdefault(int(row.fdc_id), []).append(
+                Portion(str(row.portion_description), row.gram_weight))
+    return build_index(catalog), by_food
 
 
 def evaluate(index: FoodIndex, portions: dict[int, list[Portion]],
@@ -51,7 +64,7 @@ def evaluate(index: FoodIndex, portions: dict[int, list[Portion]],
     rows = []
     for item in lines.itertuples(index=False):
         parsed = parse_line(item.line)
-        top = index.search(query_text(parsed), limit=1)
+        top = [c for c in index.search(query_text(parsed), limit=1) if c.score >= MIN_SCORE]
         desc = top[0].description if top else ""
         grams = to_grams(parsed, portions.get(top[0].food_code, [])).grams if top else None
         ref = item.grams if pd.notna(item.grams) else None
@@ -80,6 +93,9 @@ def main() -> None:
     ap.add_argument("--sr", type=Path, default=RAW / "sr_legacy")
     ap.add_argument("--input-food", type=Path, default=None,
                     help="FNDDS input_food.csv (default: found under data/raw/fndds)")
+    ap.add_argument("--fndds", type=Path, default=RAW / "fndds",
+                    help="include FNDDS foods, as the app does (default: data/raw/fndds)")
+    ap.add_argument("--sr-only", action="store_true", help="match against SR Legacy alone")
     ap.add_argument("--split", default=None)
     ap.add_argument("--show-all", action="store_true")
     args = ap.parse_args()
@@ -92,7 +108,7 @@ def main() -> None:
     lines = pd.read_csv(LINES)
     if args.split:
         lines = lines[lines["split"] == args.split]
-    index, portions = build(args.sr, input_food)
+    index, portions = build(args.sr, input_food, None if args.sr_only else args.fndds)
     results = evaluate(index, portions, lines)
 
     shown = results if args.show_all else results[

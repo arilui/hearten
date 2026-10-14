@@ -37,6 +37,8 @@ backend/
   app/           FastAPI app, settings, database models
   migrations/    Alembic database migrations
   app/ingredients/  recipe line parsing, food matching, gram conversion
+  app/rules/     guidelines, profile, dietary requirements, recipe check engine
+  app/catalog.py loads foods from Postgres and resolves recipe lines
   scripts/       data download, import, tagging, matching evaluation
   data/eval/     labeled recipe lines for the matching evaluation
   tests/         pytest suite (runs in CI against a real Postgres)
@@ -55,13 +57,32 @@ Food, nutrient, price and added-sugar data come from USDA FoodData Central (FNDD
 
 Each recipe line is parsed (amount, unit, food words), matched to a USDA food, and converted to grams using USDA portion weights. The matcher is lexical and explainable: word coverage weighted by rarity, the food's head word, penalties for dishes, brands and food parts, a preference for raw forms, and a tie-breaker from how often USDA's own survey recipes use each ingredient.
 
-It's measured on 97 hand-labeled recipe lines (`backend/data/eval/ingredient_lines.csv`), split into a dev set used while tuning and a held-out test set scored once afterwards:
+It's measured on 97 hand-labeled recipe lines (`backend/data/eval/ingredient_lines.csv`), split into a dev set used while tuning and a held-out test set scored only after tuning:
 
 | Split | Lines | Correct food | Grams within 25% |
 |---|---|---|---|
 | dev | 60 | 100% | 98% |
-| test (held out) | 37 | 92% | 95% |
+| test (held out, first run) | 37 | 92% | 95% |
+
+Adding FNDDS foods to the same search (so prepared foods like salsa or hummus match) scored 89% on its first test run; that run exposed a parsing bug in names with parentheses, which was fixed, bringing it back to 92%. Because that fix was prompted by the test set, the next evaluation should use freshly labeled lines.
 
 ```bash
 python -m scripts.eval_matching     # needs the downloaded USDA data
+```
+
+## Recipe check (rules engine)
+
+`app/rules/` compares one recipe with a person's plan. Every limit cites its source in `app/rules/guidelines.py`:
+
+- **Limits** (sodium, added sugars for diabetes, alcohol, an optional carb target): each serving is compared with one meal's share of the daily limit (daily limit ÷ meals per day, or a half, quarter or eighth of that for a snack). Over-limit results name the ingredients behind them.
+- **Goals** (potassium) show progress with a kidney and medication caution; **ratios** (fiber per 1,000 kcal) are judged on the recipe itself.
+- **Budget**: cost per serving from USDA average prices, with the user's own prices taking precedence.
+- **Diet**: requirements and the 9 major allergens become exclusions over food tags; halal and kosher add "check certification" notes, and kosher also catches meat with dairy.
+- Missing data is never counted as zero: results say "incomplete" instead.
+
+Try it against your database:
+
+```bash
+python -m scripts.check_recipe data/examples/chicken_stir_fry.txt --servings 4 \
+    --condition hypertension --budget 4.00 --diet halal
 ```
