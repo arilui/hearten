@@ -61,7 +61,32 @@ CASES = [
      {"oats", "gluten"}, {"wheat"}),
     ("Honeydew melon", ["Melons, honeydew"], {},
      set(), {"honey"}),
+    ("Chicken breast, roasted", ["Chicken, broilers or fryers, breast, meat only, cooked"], POULT,
+     {"poultry"}, {"meat"}),
+    ("Turkey, light meat, roasted", ["Turkey, all classes, light meat, cooked"], POULT,
+     {"poultry"}, {"meat"}),
+    ("Meat sauce, spaghetti", ["Beef, ground", "Tomato sauce"], {},
+     {"beef", "meat"}, set()),
 ]
+
+
+@pytest.mark.parametrize(("description", "ingredients", "fped", "reason"), [
+    ("Cake, yellow", ["Wheat flour, white, all-purpose"], {}, "flour type unclear"),
+    ("Trail mix", ["Nuts, almonds", "Raisins"], {}, "nut type unclear"),
+    ("Chicken noodle soup", ["Soup, chicken broth"], POULT, "broth or stock source unclear"),
+    ("Pepperoni pizza", ["Pepperoni, beef and pork"], {}, "meat species unclear"),
+], ids=["wheat flour", "named nut", "chicken broth", "named species"])
+def test_settled_foods_skip_review(description, ingredients, fped, reason):
+    assert reason not in tag_food(description, ingredients, fped).review_reasons
+
+
+@pytest.mark.parametrize(("description", "reason"), [
+    ("Dumplings, NFS", "flour type unclear"),
+    ("Gravy, NFS", "broth or stock source unclear"),
+    ("Mixed nuts", "nut type unclear"),
+])
+def test_ambiguous_foods_go_to_review(description, reason):
+    assert reason in tag_food(description, [], {}).review_reasons
 
 
 @pytest.mark.parametrize(("description", "ingredients", "fped", "must", "must_not"), CASES,

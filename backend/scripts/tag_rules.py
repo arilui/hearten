@@ -100,7 +100,10 @@ EXCLUSIONS: dict[str, re.Pattern] = {
     "meat": _words("meatless", "vegetarian", "meat substitute", "imitation meat",
                    "crab meat", "crabmeat", "lobster meat", "coconut meat", "nut meat",
                    "kidney bean", "game hen", "buffalo wing", "buffalo sauce",
-                   "buffalo chicken", "buffalo-style", "beans, kidney"),
+                   "buffalo chicken", "buffalo-style", "beans, kidney",
+                   # USDA describes poultry and fish cuts as "meat only", "light meat"...
+                   "meat only", "light meat", "dark meat", "white meat", "meat and skin",
+                   "meat, skin"),
     "poultry": _words("duck sauce"),
     "honey": _words("honeydew", "honeycrisp"),
     "alcohol": _any(
@@ -189,17 +192,40 @@ KEYWORDS: dict[str, re.Pattern] = {
     "nonhalal_animal": _words("frog", "alligator", "turtle", "snake", "crocodile"),
 }
 
-# Words that tag conservatively but need a person to confirm.
-REVIEW_TRIGGERS: dict[str, re.Pattern] = {
-    "meat species unclear": _words(
-        "sausage", "hot dog", "frankfurter", "bologna", "salami", "pepperoni",
-        "luncheon meat", "meatball", "meatloaf", "gyro", "jerky", "meat",
+# Words that tag conservatively but need a person to confirm. Each trigger is
+# (pattern, resolver): it fires only when the pattern matches and nothing in the
+# text already settles the question (e.g. "Wheat flour" settles "flour").
+SPECIES = _words(
+    "beef", "veal", "pork", "ham", "bacon", "chicken", "turkey", "duck", "lamb", "mutton",
+    "goat", "venison", "bison", "fish", "salmon", "tuna", "shrimp", "crab", "clam",
+    "vegetable", "vegetables", "mushroom", "seafood", "meatless", "vegetarian",
+)
+GRAINS = _words(
+    "wheat", "rice", "corn", "cornmeal", "masa", "oat", "oats", "rye", "barley",
+    "buckwheat", "potato", "tapioca", "chickpea", "almond flour", "coconut flour",
+)
+NAMED_NUTS = _words(
+    "almond", "cashew", "pecan", "walnut", "pistachio", "hazelnut", "filbert", "macadamia",
+    "brazil nut", "pine nut", "chestnut", "peanut", "coconut",
+)
+
+REVIEW_TRIGGERS: dict[str, tuple[re.Pattern, re.Pattern | None]] = {
+    "meat species unclear": (
+        _words("sausage", "hot dog", "frankfurter", "bologna", "salami", "pepperoni",
+               "luncheon meat", "meatball", "meatloaf", "gyro", "jerky"),
+        SPECIES,
     ),
-    "gelatin source unknown": _words("gelatin", "gelatine", "marshmallow", "gummy"),
-    "flour type unclear": _words("flour", "batter", "breaded", "dumpling", "tortilla"),
-    "broth or stock source unclear": _words("broth", "stock", "bouillon", "gravy"),
-    "nut type unclear": _words("nuts", "mixed nuts", "nut"),
-    "coconut (not a major allergen in current FDA guidance; check)": _words("coconut"),
+    "gelatin source unknown": (_words("gelatin", "gelatine", "marshmallow", "gummy"), None),
+    "flour type unclear": (
+        _words("flour", "batter", "breaded", "dumpling", "tortilla"),
+        GRAINS,
+    ),
+    "broth or stock source unclear": (
+        _words("broth", "stock", "bouillon", "gravy"),
+        SPECIES,
+    ),
+    "nut type unclear": (_words("nuts", "mixed nuts", "nut"), NAMED_NUTS),
+    "coconut: not a major allergen in current FDA guidance, check": (_words("coconut"), None),
 }
 
 # Gluten-free grain words that cancel a generic "flour"/"bread" wheat match.
@@ -268,8 +294,8 @@ def tag_food(description: str, ingredients: list[str], fped: dict[str, float]) -
         if tag in result.tags:
             result.tags.update(implied)
 
-    for reason, pattern in REVIEW_TRIGGERS.items():
-        if pattern.search(text):
+    for reason, (pattern, resolver) in REVIEW_TRIGGERS.items():
+        if pattern.search(text) and not (resolver and resolver.search(text)):
             result.review_reasons.append(reason)
 
     return result
