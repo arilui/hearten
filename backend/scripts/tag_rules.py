@@ -299,3 +299,31 @@ def tag_food(description: str, ingredients: list[str], fped: dict[str, float]) -
             result.review_reasons.append(reason)
 
     return result
+
+
+# SR Legacy foods have no FPED amounts or ingredient lists; their USDA food
+# category stands in as evidence (category ids from SR's food_category.csv).
+SR_CATEGORY_EVIDENCE: dict[int, dict[str, float]] = {
+    5: {"PF_POULT (oz eq)": 1},      # Poultry Products
+    10: {"PF_MEAT (oz eq)": 1},      # Pork Products
+    13: {"PF_MEAT (oz eq)": 1},      # Beef Products
+    17: {"PF_MEAT (oz eq)": 1},      # Lamb, Veal, and Game Products
+    15: {"PF_SEAFD_HI (oz eq)": 1},  # Finfish and Shellfish Products
+    12: {"PF_NUTSDS (oz eq)": 1},    # Nut and Seed Products
+}
+SR_CATEGORY_TAGS: dict[int, list[str]] = {10: ["pork"], 13: ["beef"]}
+SR_DAIRY_AND_EGG = 1
+
+
+def tag_sr_food(description: str, category_id: int) -> TagResult:
+    """Tags for an SR Legacy food, using its USDA category as extra evidence."""
+    result = tag_food(description, [], SR_CATEGORY_EVIDENCE.get(category_id, {}))
+    for tag in SR_CATEGORY_TAGS.get(category_id, []):
+        result.tags.add(tag)
+        result.tags.update(IMPLIES.get(tag, []))
+    # Everything in "Dairy and Egg Products" contains one or the other; when the
+    # name doesn't say which (e.g. "Dulce de Leche"), assume dairy and flag it.
+    if category_id == SR_DAIRY_AND_EGG and not result.tags & {"dairy", "egg"}:
+        result.tags.add("dairy")
+        result.review_reasons.append("dairy or egg content unclear")
+    return result

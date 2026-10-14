@@ -25,7 +25,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from scripts.tag_rules import FPED_GROUPS, TAGS, tag_food
+from scripts import sr_legacy
+from scripts.tag_rules import FPED_GROUPS, TAGS, tag_food, tag_sr_food
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
@@ -37,10 +38,22 @@ FPED_SEAFOOD_AND_NUTS = ["PF_SEAFD_HI (oz eq)", "PF_SEAFD_LOW (oz eq)", "PF_NUTS
 
 # ----------------------------------------------------------------- readers ----
 
-def read_foods(fndds: Path) -> pd.DataFrame:
+def read_foods(fndds: Path, sr: Path | None = None) -> pd.DataFrame:
+    """
+    fdc_id, food_code, description, sr_category. FNDDS foods have no
+    sr_category; SR Legacy foods (if given) use their fdc_id as food_code.
+    """
     food = pd.read_csv(next(fndds.rglob("food.csv")), low_memory=False)
     codes = pd.read_csv(next(fndds.rglob("survey_fndds_food.csv")), low_memory=False)
-    return food[["fdc_id", "description"]].merge(codes[["fdc_id", "food_code"]], on="fdc_id")
+    foods = food[["fdc_id", "description"]].merge(codes[["fdc_id", "food_code"]], on="fdc_id")
+    foods["sr_category"] = pd.NA
+    if sr is not None and sr.exists():
+        sr_foods = sr_legacy.read_foods(sr)
+        foods = pd.concat([foods, pd.DataFrame({
+            "fdc_id": sr_foods["fdc_id"], "description": sr_foods["description"],
+            "food_code": sr_foods["fdc_id"], "sr_category": sr_foods["category_id"],
+        })], ignore_index=True)
+    return foods
 
 
 def read_ingredients(fndds: Path, foods: pd.DataFrame) -> dict[int, list[str]]:
@@ -102,8 +115,12 @@ def compute_tags(foods: pd.DataFrame, ingredients: dict[int, list[str]],
     tag_rows, review_rows = [], []
     for food in foods.itertuples(index=False):
         code = int(food.food_code)
-        result = tag_food(food.description, ingredients.get(int(food.fdc_id), []),
-                          fped.get(code, {}))
+        sr_category = getattr(food, "sr_category", pd.NA)
+        if pd.notna(sr_category):
+            result = tag_sr_food(food.description, int(sr_category))
+        else:
+            result = tag_food(food.description, ingredients.get(int(food.fdc_id), []),
+                              fped.get(code, {}))
         tag_rows.extend({"food_code": code, "tag": t, "set_by": "rule"} for t in result.tags)
         if result.review_reasons:
             review_rows.append({
@@ -159,7 +176,7 @@ def write_tags(engine, tags: pd.DataFrame) -> None:
 def main() -> None:
     from app.db import get_engine
 
-    foods = read_foods(RAW / "fndds")
+    foods = read_foods(RAW / "fndds", RAW / "sr_legacy")
     tags, review = compute_tags(
         foods,
         read_ingredients(RAW / "fndds", foods),

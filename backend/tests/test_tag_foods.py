@@ -69,3 +69,12 @@ def test_write_tags(inputs, db_engine):
     with db_engine.connect() as conn:
         n = conn.execute(text("SELECT count(*) FROM food_tag")).scalar()
     assert n == len(tags) > 0
+
+
+def test_sr_foods_are_tagged_by_name_and_category():
+    foods = read_foods(RAW / "fndds", RAW / "sr_legacy")
+    assert 171077 in set(foods["food_code"])  # SR chicken, keyed by fdc_id
+    tags, review = compute_tags(foods, read_ingredients(RAW / "fndds", foods), {}, NO_OVERRIDES)
+    assert "poultry" in tags_of(tags, 171077)
+    assert "dairy" in tags_of(tags, 171265)
+    assert "dairy" in tags_of(tags, 11111000)  # FNDDS foods still tagged as before

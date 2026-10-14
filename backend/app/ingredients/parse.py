@@ -26,11 +26,11 @@ PREP_WORDS = {
     "chopped", "diced", "minced", "sliced", "thinly", "thickly", "finely", "roughly",
     "coarsely", "grated", "shredded", "peeled", "crushed", "packed", "lightly", "firmly",
     "softened", "melted", "cubed", "halved", "quartered", "trimmed", "rinsed", "drained",
-    "divided", "optional", "fresh", "freshly", "about", "approximately", "heaping",
+    "divided", "optional", "freshly", "about", "approximately", "heaping",
     "level", "scant", "julienned", "torn", "beaten", "whisked", "sifted", "cold", "warm",
     "hot", "room", "temperature", "plus", "more", "for", "serving", "garnish", "of",
     "cut", "into", "pieces", "bite-size", "bite-sized", "stemmed", "seeded", "pitted",
-    "deveined", "zested", "juiced", "uncooked", "dry",
+    "deveined", "zested", "juiced",
 }
 
 # Size words that stay part of the food when no other unit was given ("2 large eggs"

@@ -1,0 +1,98 @@
+split,line,accept,grams
+dev,2 cups all-purpose flour,"Wheat flour, white, all-purpose, (enriched, (bleached|unbleached)|unenriched)",250
+dev,1 tsp salt,"Salt, table",6
+dev,1 tsp baking soda,"Leavening agents, baking soda",4.6
+dev,2 tsp baking powder,"Leavening agents, baking powder, double-acting.*",9.2
+dev,1 lb boneless skinless chicken breasts,"Chicken, broilers? or fryers, breast, (skinless, boneless, )?meat only, raw",453.6
+dev,1 cup low-sodium chicken broth,"Soup, chicken broth, (low sodium, canned|less/reduced sodium, ready to serve)",240
+dev,1 tsp vanilla extract,Vanilla extract,4.2
+dev,2 tbsp cornstarch,Cornstarch,16
+dev,8 oz dry spaghetti,"Pasta, dry, (enriched|unenriched)",226.8
+dev,1 cup long-grain white rice,"Rice, white, long-grain, regular, raw, (enriched|unenriched)",185
+dev,1 tsp ground cumin,"Spices, cumin seed",2.1
+dev,"2 cloves garlic, minced","Garlic, raw",6
+dev,"1 large onion, diced","Onions, raw",150
+dev,2 tbsp olive oil,"Oil, olive, salad or cooking",27
+dev,1 cup granulated sugar,"Sugars, granulated",200
+dev,2 large eggs,"Egg, whole, raw, fresh",100
+dev,1 cup whole milk,"Milk, whole, 3.25% milkfat.*",244
+dev,1/2 cup unsalted butter,"Butter, without salt",113.5
+dev,"1 can (15 oz) black beans, drained","Beans, black( turtle)?, mature seeds, canned.*",425
+dev,1 cup brown rice,"Rice, brown, (long|medium)-grain, raw.*",185
+dev,2 tbsp honey,Honey,42
+dev,1 tbsp soy sauce,"Soy sauce made from soy and wheat \(shoyu\)",16
+dev,1 lb ground beef,"Beef, ground, \d+% lean meat / \d+% fat, raw.*",453.6
+dev,1 cup shredded cheddar cheese,"Cheese, cheddar.*",113
+dev,2 medium carrots,"Carrots, raw",122
+dev,1 cup frozen peas,"Peas, green, frozen, unprepared.*",134
+dev,1 tsp black pepper,"Spices, pepper, black",2.3
+dev,1 tbsp fresh ginger,"Ginger root, raw",6
+dev,1 cup plain greek yogurt,"Yogurt, Greek, plain, (nonfat|lowfat|whole milk).*",245
+dev,1 avocado,"Avocados, raw, (all commercial varieties|California|Florida)",170
+dev,1 lemon,"Lemons, raw, without peel",58
+dev,2 cups baby spinach,"Spinach, raw",60
+dev,1 cup rolled oats,"(Oats.*|Cereals, oats, regular and quick, not fortified, dry)",81
+dev,1/4 cup maple syrup,"Syrups, maple",80
+dev,1 can (14.5 oz) diced tomatoes,"Tomatoes, red, ripe, canned, (packed in tomato juice|.*)",411
+dev,1 lb salmon fillets,"Fish, salmon, .*, raw",453.6
+dev,2 tbsp tomato paste,"Tomato products, canned, paste.*",33
+dev,1 tsp dried oregano,"Spices, oregano, dried",1
+dev,1 cup quinoa,"Quinoa, uncooked",170
+dev,2 medium potatoes,"Potatoes, (flesh and skin|white, flesh and skin|russet, flesh and skin), raw",426
+dev,1 tbsp lemon juice,"Lemon juice, raw|Lemon juice from concentrate, canned or bottled",15
+dev,1 cup diced celery,"Celery, raw",101
+dev,1 medium zucchini,"Squash, summer, zucchini, includes skin, raw",196
+dev,"1 red bell pepper, chopped","Peppers, sweet, red, raw",119
+dev,"8 oz mushrooms, sliced","Mushrooms, white, raw",226.8
+dev,1 cup dry lentils,"Lentils, raw",192
+dev,1 cup heavy cream,"Cream, fluid, heavy whipping",238
+dev,1/2 cup sour cream,"Cream, sour, cultured",115
+dev,2 tbsp peanut butter,"Peanut butter, smooth style, with salt.*",32
+dev,1/2 cup chopped walnuts,"Nuts, walnuts, english",58
+dev,1 cup brown sugar,"Sugars, brown",220
+dev,1 tsp ground cinnamon,"Spices, cinnamon, ground",2.6
+dev,1 tbsp chili powder,"Spices, chili powder",8
+dev,3 tbsp canola oil,"Oil, canola",42
+dev,"2 green onions, sliced","Onions, spring or scallions.*",30
+dev,1/2 cup grated parmesan,"Cheese, parmesan, (grated|hard)",50
+dev,1 cup shredded mozzarella,"Cheese, mozzarella, .*",112
+dev,1 cup 2% milk,"Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",244
+dev,1 can (13.5 oz) coconut milk,"Nuts, coconut milk, canned.*",383
+dev,1/2 cup dry white wine,"Alcoholic beverage, wine, table, white",118
+test,1 lb ground turkey,"Turkey, ground, (93% lean, 7% fat|85% lean, 15% fat), raw",453.6
+test,1 lb pork tenderloin,"Pork, fresh, loin, tenderloin, separable lean (only|and fat), raw",453.6
+test,"1 lb shrimp, peeled and deveined","Crustaceans, shrimp, (mixed species, )?raw.*",453.6
+test,"1 can (5 oz) tuna in water, drained","Fish, tuna, light, canned in water, drained solids.*",142
+test,2 tbsp sesame seeds,"Seeds, sesame seeds, whole, dried",18
+test,8 oz rice noodles,"Rice noodles, dry",226.8
+test,1 cup couscous,"Couscous, dry",173
+test,1/2 cup pearl barley,"Barley, pearled, raw",100
+test,1/4 cup unsweetened cocoa powder,"Cocoa, dry powder, unsweetened",21.5
+test,2 1/4 tsp active dry yeast,"Leavening agents, yeast, baker's, active dry",7
+test,1 tbsp apple cider vinegar,"Vinegar, cider",15
+test,2 tbsp balsamic vinegar,"Vinegar, balsamic",32
+test,"1 can (15 oz) chickpeas, drained and rinsed","Chickpeas \(garbanzo beans, bengal gram\), mature seeds, canned.*",425
+test,1/2 cup crumbled feta,"Cheese, feta.*",75
+test,1 tsp paprika,"Spices, paprika",2.3
+test,1 tsp garlic powder,"Spices, garlic powder",3.1
+test,1/2 tsp ground turmeric,"Spices, turmeric, ground",1.5
+test,1 tsp dried thyme,"Spices, thyme, dried",1
+test,1 cup cherry tomatoes,"Tomatoes, red, ripe, raw.*",149
+test,2 cups whole wheat flour,"Wheat flour, whole-grain.*",240
+test,1 cup unsweetened almond milk,"Beverages, almond milk, unsweetened.*",240
+test,2 tbsp chia seeds,"Seeds, chia seeds, dried",24
+test,1/4 cup raisins,"Raisins, (golden, seedless|dark, seedless.*)",36
+test,1 large sweet potato,"Sweet potato, raw, unprepared.*",180
+test,2 ripe bananas,"Bananas, raw",236
+test,1 apple,"Apples, raw, with skin.*",182
+test,1 cup blueberries,"Blueberries, raw",148
+test,2 tbsp ketchup,"Catsup",34
+test,1/4 cup mayonnaise,"Salad dressing, mayonnaise, regular|Salad dressing, mayonnaise, soybean and safflower oil, with salt",55
+test,1/4 cup chopped fresh parsley,"Parsley, fresh",15
+test,1/4 cup chopped cilantro,"Coriander \(cilantro\) leaves, raw",4
+test,1 cup water,"Water, bottled, generic|Beverages, water, tap.*",237
+test,14 oz extra-firm tofu,"Tofu, (extra firm, prepared with nigari|raw, firm, prepared with calcium sulfate|firm, prepared with calcium sulfate and magnesium chloride \(nigari\))",397
+test,1 cup frozen corn,"Corn, sweet, yellow, frozen, kernels cut off cob, unprepared.*",136
+test,2 cups chopped broccoli,"Broccoli, raw",182
+test,1 jalapeno,"Peppers, jalapeno, raw",14
+test,1 cup canned pumpkin,"Pumpkin, canned, (without salt|with salt)",245

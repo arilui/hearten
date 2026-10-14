@@ -48,6 +48,8 @@ def read_portion(portion: Portion) -> PortionUnit:
         unit, words = "fl oz", words[2:]
     elif words and canonical_unit(words[0]):
         unit, words = canonical_unit(words[0]), words[1:]
+    elif len(words) > 1 and canonical_unit(words[1]):  # "1 Potato medium (2-1/4" dia)"
+        unit, words = canonical_unit(words[1]), words[2:]
     return PortionUnit(amount=amount or 1.0, unit=unit, modifier=" ".join(words),
                        grams=portion.gram_weight)
 
@@ -80,6 +82,10 @@ def to_grams(parsed: ParsedLine, portions: list[Portion]) -> GramResult:
 
     if unit in VOLUME_TSP:
         volume = [u for u in units if u.unit in VOLUME_TSP]
+        # A "dash" or "pinch" portion is too rough to scale from when a real
+        # measure exists.
+        measured = [u for u in volume if u.unit not in {"dash", "pinch"}]
+        volume = measured or volume
         if volume:
             p = _best(volume, f"{parsed.note} {parsed.original}")
             grams_per_tsp = p.grams / (p.amount * VOLUME_TSP[p.unit])
