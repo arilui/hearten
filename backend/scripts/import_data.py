@@ -137,12 +137,15 @@ def build_tables(fndds: dict[str, pd.DataFrame], fped: pd.DataFrame,
     )
 
     used = set(food_nutrient["nutrient_id"])
-    nutrient = fndds["nutrient"].rename(columns={"id": "nutrient_id", "unit_name": "unit"})
-    nutrient = nutrient[nutrient["nutrient_id"].isin(used)][["nutrient_id", "name", "unit"]]
+    nutrient = _nutrient_table(fndds["nutrient"], set(fn["nutrient_id"].astype(int)))
+    nutrient = nutrient[nutrient["nutrient_id"].isin(used)]
     nutrient = pd.concat([nutrient, pd.DataFrame([
         {"nutrient_id": ADDED_SUGARS_ID, "name": "Added sugars (FPED)", "unit": "G"},
         {"nutrient_id": ALCOHOLIC_DRINKS_ID, "name": "Alcoholic drinks (FPED)", "unit": "DRINK"},
     ])])
+    missing = set(food_nutrient["nutrient_id"]) - set(nutrient["nutrient_id"])
+    if missing:
+        raise ValueError(f"Food data references unknown nutrients: {sorted(missing)[:10]}")
 
     fp = fndds["food_portion"]
     fp = fp[fp["fdc_id"].isin(fdc_to_code.index) & (fp["gram_weight"] > 0)]
@@ -161,6 +164,26 @@ def build_tables(fndds: dict[str, pd.DataFrame], fped: pd.DataFrame,
         food_portion=food_portion,
         food_price=food_price,
     )
+
+
+def _nutrient_table(raw: pd.DataFrame, referenced: set[int]) -> pd.DataFrame:
+    """
+    FNDDS food_nutrient rows refer to nutrients by their legacy nutrient number
+    (e.g. 307 = sodium), not by nutrient.csv's id column (e.g. 1093). Key the
+    table by whichever of the two the food data actually uses.
+    """
+    by_number = raw.dropna(subset=["nutrient_nbr"]).copy()
+    by_number["key"] = by_number["nutrient_nbr"].astype(int)
+    by_id = raw.assign(key=raw["id"].astype(int))
+    hits_number = len(referenced & set(by_number["key"]))
+    hits_id = len(referenced & set(by_id["key"]))
+    chosen = by_number if hits_number >= hits_id else by_id
+    chosen = chosen.drop_duplicates(subset=["key"])
+    return pd.DataFrame({
+        "nutrient_id": chosen["key"],
+        "name": chosen["name"],
+        "unit": chosen["unit_name"],
+    })
 
 
 # -------------------------------------------------------------------- load ----

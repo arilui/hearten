@@ -43,7 +43,14 @@ def test_added_sugars_convert_teaspoons_to_grams_and_skip_old_codes(tables):
 
 
 def test_only_used_nutrients_are_kept(tables):
-    assert 1999 not in set(tables.nutrient["nutrient_id"])
+    assert 999 not in set(tables.nutrient["nutrient_id"])
+
+
+def test_nutrients_are_keyed_by_number_as_the_food_data_uses(tables):
+    # Every nutrient referenced by a food must exist, or the foreign key load fails.
+    assert set(tables.food_nutrient["nutrient_id"]) <= set(tables.nutrient["nutrient_id"])
+    names = tables.nutrient.set_index("nutrient_id")["name"]
+    assert names.loc[307] == "Sodium, Na"
 
 
 def test_zero_gram_portions_are_dropped(tables):
@@ -70,7 +77,7 @@ def test_load_writes_all_tables(tables, db_engine):
         count = conn.execute(text("SELECT count(*) FROM food")).scalar()
         sodium = conn.execute(text(
             "SELECT amount_per_100g FROM food_nutrient WHERE food_code = 72118300 "
-            "AND nutrient_id = 1093"
+            "AND nutrient_id = 307"
         )).scalar()
     assert count == 3
     assert sodium == Decimal("53.0000")
