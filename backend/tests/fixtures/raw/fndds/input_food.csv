@@ -1,0 +1,5 @@
+"id","fdc_id","fdc_of_input_food","seq_num","amount","sr_code","sr_description","unit","portion_code","portion_description","gram_weight","retention_code"
+"1","1","","1","100","1077","Milk, whole, 3.25% milkfat","GM","0","NONE","100","0"
+"2","2","","1","100","11233","Kale, raw","GM","0","NONE","100","0"
+"3","2","1","2","20","","","GM","0","NONE","20","0"
+"4","3","","1","100","14096","Alcoholic beverage, wine, table, red","GM","0","NONE","100","0"
