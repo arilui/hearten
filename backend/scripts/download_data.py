@@ -12,7 +12,7 @@ The inspect output is what the import scripts are written against.
 
 import argparse
 import csv
-import io
+import json
 import sys
 import time
 import urllib.request
@@ -47,11 +47,11 @@ SOURCES = {
 }
 
 # BLS average retail prices for staples PP-NAP doesn't cover (flour, uncooked rice,
-# dry pasta, eggs...), monthly. Each series is fetched on its own (FRED can time out
-# building a combined file) and saved together, one column per series. Delete the
-# file and re-run to refresh prices.
+# dry pasta, eggs...), monthly, from the BLS public API (no key needed for up to 25
+# series per request). Saved as one CSV, one column per series. Delete the file and
+# re-run to refresh prices.
 BLS_FILE = "bls_average_prices.csv"
-FRED_CSV = "https://fred.stlouisfed.org/graph/fredgraph.csv?id="
+BLS_API = "https://api.bls.gov/publicAPI/v1/timeseries/data/"
 
 MANUAL_PAGES = {
     "fndds.zip": "https://fdc.nal.usda.gov/download-datasets (FNDDS 2021-2023, CSV)",
@@ -60,8 +60,8 @@ MANUAL_PAGES = {
     "beltsville-human-nutrition-research-center/food-surveys-research-group/docs/fped-databases/",
     "ppnap.zip": "https://www.ers.usda.gov/data-products/purchase-to-plate (PP-NAP, CSV)",
     "cpi_food_at_home.csv": "https://fred.stlouisfed.org/series/CUUR0000SAF11 (Download, CSV)",
-    "bls_average_prices.csv": "each series in backend/data/bls_staples.csv at "
-    "https://fred.stlouisfed.org/series/<series_id> (Download, CSV), combined by date",
+    "bls_average_prices.csv": "https://data.bls.gov/cgi-bin/srgate (paste the series ids "
+    "from backend/data/bls_staples.csv), saved as observation_date plus one column per series",
 }
 
 
@@ -80,32 +80,45 @@ def fetch(url: str, timeout: int = 120, attempts: int = 3) -> bytes:
     raise AssertionError("unreachable")
 
 
+def bls_to_columns(payload: dict) -> dict[str, dict[str, str]]:
+    """BLS API JSON -> {series: {"YYYY-MM-01": value}} for monthly observations."""
+    if payload.get("status") != "REQUEST_SUCCEEDED":
+        raise RuntimeError("; ".join(payload.get("message", [])) or payload.get("status"))
+    columns = {}
+    for series in payload["Results"]["series"]:
+        values = {}
+        for obs in series["data"]:
+            period, value = obs["period"], obs["value"]
+            if period.startswith("M") and period != "M13" and value not in ("", "-"):
+                values[f"{obs['year']}-{period[1:]}-01"] = value
+        if values:
+            columns[series["seriesID"]] = values
+    return columns
+
+
 def download_bls_prices(target: Path) -> bool:
-    """Fetch each BLS series from FRED and save them as one CSV keyed by date."""
-    columns: dict[str, dict[str, str]] = {}
-    failed = []
-    for series in bls_series_ids():
-        try:
-            text = fetch(FRED_CSV + series, timeout=60).decode("utf-8")
-        except Exception as e:
-            failed.append(series)
-            print(f"  FAILED {series}: {e}")
-            continue
-        rows = list(csv.reader(io.StringIO(text)))
-        columns[series] = {date: value for date, value in rows[1:] if value not in ("", ".")}
-        print(f"  got {series}", flush=True)
-    if columns:
-        dates = sorted({d for values in columns.values() for d in values})
-        with target.open("w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["observation_date", *columns])
-            for d in dates:
-                writer.writerow([d, *(columns[s].get(d, "") for s in columns)])
-    if failed:
-        print(f"  {len(failed)} series failed; re-run later to retry them "
-              f"(delete {target.name} first), or download by hand from "
-              f"{MANUAL_PAGES[BLS_FILE]}")
-    return not failed
+    """Fetch the staple series from the BLS API and save them as one CSV keyed by date."""
+    wanted = bls_series_ids()
+    body = json.dumps({"seriesid": wanted}).encode("utf-8")
+    try:
+        request = urllib.request.Request(BLS_API, data=body, headers={
+            "Content-Type": "application/json", "User-Agent": "hearten-data"})
+        with urllib.request.urlopen(request, timeout=120) as response:
+            columns = bls_to_columns(json.load(response))
+    except Exception as e:
+        print(f"  FAILED: {e}")
+        print(f"  Re-run later, or download by hand from {MANUAL_PAGES[BLS_FILE]}")
+        return False
+    dates = sorted({d for values in columns.values() for d in values})
+    with target.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["observation_date", *columns])
+        for d in dates:
+            writer.writerow([d, *(columns[s].get(d, "") for s in columns)])
+    missing = [s for s in wanted if s not in columns]
+    print(f"  got {len(columns)} of {len(wanted)} series"
+          + (f" (no data: {', '.join(missing)})" if missing else ""))
+    return not missing
 
 
 def download() -> bool:
@@ -128,7 +141,7 @@ def download() -> bool:
     if target.exists():
         print(f"have      {BLS_FILE}")
     else:
-        print(f"download  {BLS_FILE} (one series at a time) ...", flush=True)
+        print(f"download  {BLS_FILE} (BLS API) ...", flush=True)
         ok = download_bls_prices(target) and ok
     for name in ("fndds.zip", "sr_legacy.zip", "ppnap.zip"):
         path = RAW / name
