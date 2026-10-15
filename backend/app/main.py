@@ -2,6 +2,7 @@
 Hearten API.
 
     GET  /health   liveness plus a database round trip
+    GET  /warm     load the food catalogue now (the website calls this on page load)
     POST /check    check a pasted recipe against a person's plan
 
 The food catalogue is loaded from Postgres on the first /check and kept in
@@ -71,6 +72,13 @@ def health(session: Annotated[Session, Depends(get_session)]) -> dict:
     """Liveness plus a database round trip, so a broken connection shows up here first."""
     session.execute(text("SELECT 1"))
     return {"status": "ok", "database": "ok"}
+
+
+@app.get("/warm")
+def warm(catalog: Annotated[Catalog, Depends(get_catalog)]) -> dict:
+    """Loading the catalogue takes a few seconds on a cold start; doing it while the
+    person is still typing their recipe makes the first check fast."""
+    return {"status": "ready", "foods": len(catalog.foods)}
 
 
 @app.post("/check")

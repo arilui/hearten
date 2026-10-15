@@ -18,6 +18,10 @@ dev = [
     "httpx>=0.27",
     "ruff>=0.6",
 ]
+# The AWS Lambda adapter (requirements-lambda.txt pins what's deployed).
+lambda = [
+    "mangum>=0.17",
+]
 # Only needed to download and import the USDA datasets.
 data = [
     "pandas>=2.2",

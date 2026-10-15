@@ -1,0 +1,10 @@
+# What runs in AWS Lambda (Python 3.13, x86_64). Data-import and dev tools are
+# left out to keep the package small; boto3 comes with the Lambda runtime.
+fastapi==0.143.0
+starlette==1.8.0
+pydantic==2.14.1
+pydantic-core==2.50.1
+pydantic-settings==2.15.0
+sqlalchemy==2.1.4
+psycopg[binary]==3.3.6
+mangum>=0.17

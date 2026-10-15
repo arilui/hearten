@@ -377,6 +377,9 @@ paintToggle();
 
 restoreForm();
 updateVisibility();
+// Start loading the food catalogue on the server while the person types, so the
+// first check doesn't wait for a cold start. Failures surface on the real check.
+fetch(`${API}/warm`).catch(() => {});
 form.addEventListener("change", () => { updateVisibility(); saveForm(); });
 form.addEventListener("submit", onSubmit);
 document.getElementById("example").addEventListener("click", () => {

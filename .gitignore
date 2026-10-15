@@ -24,3 +24,12 @@ Thumbs.db
 
 # Generated review lists (rebuilt by scripts/tag_foods.py)
 data/review/
+
+# Terraform
+infra/.terraform/
+infra/.build/
+infra/*.tfstate
+infra/*.tfstate.*
+infra/terraform.tfvars
+# Lambda build output
+backend/build/

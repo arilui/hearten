@@ -81,3 +81,7 @@ def test_invalid_profile_is_rejected(client):
     assert response.status_code == 422
     response = client.post("/check", json={"recipe": "1 tsp salt", "servings": 0})
     assert response.status_code == 422
+
+
+def test_warm_loads_the_catalogue(client):
+    assert client.get("/warm").json() == {"status": "ready", "foods": len(FOODS)}

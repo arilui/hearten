@@ -55,3 +55,62 @@ jobs:
 
       - name: Tests
         run: pytest -v -rs
+
+  infra:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+      - name: Format
+        run: terraform fmt -check -recursive
+      - name: Validate
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+  lambda-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Build the Lambda package
+        run: bash backend/scripts/build_lambda.sh
+      - name: The package imports with only its own dependencies
+        working-directory: backend/build/lambda
+        run: python -I -c "import sys; sys.path.insert(0, '.'); import app.lambda_handler; print('ok')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lambda
+          path: backend/build/lambda.zip
+          retention-days: 7
+
+  deploy:
+    # Runs once the AWS infrastructure exists and the repo variables are set.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AWS_DEPLOY_ROLE_ARN != ''
+    needs: [backend, infra, lambda-package]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # short-lived AWS credentials through OIDC; no stored keys
+      contents: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: lambda
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-west-2
+      - name: Upload the new code
+        run: |
+          aws lambda update-function-code --function-name hearten-api \
+            --zip-file fileb://lambda.zip > /dev/null
+          aws lambda wait function-updated --function-name hearten-api
+      - name: Smoke test
+        run: |
+          curl -fsS --retry 3 --retry-delay 5 "${{ vars.API_URL }}health"
+          curl -fsS --max-time 60 "${{ vars.API_URL }}warm"
