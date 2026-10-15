@@ -30,6 +30,16 @@ uvicorn app.main:app --reload    # http://127.0.0.1:8000/health
 
 Prefer a local database? `docker compose up -d db` starts one, and the `.env.example` comment shows the matching URL.
 
+## Website
+
+`frontend/` is a single static page (HTML, CSS and plain JavaScript, no build step): paste a recipe, set a plan, and read the results as an annotated recipe, with each line's USDA match and grams in the margin. Settings are saved in the browser only.
+
+```bash
+# with the API running on port 8000 (uvicorn app.main:app --reload)
+cd frontend
+python -m http.server 3000      # then open http://localhost:3000
+```
+
 ## Project layout
 
 ```text
@@ -42,6 +52,7 @@ backend/
   scripts/       data download, import, tagging, matching evaluation
   data/eval/     labeled recipe lines for the matching evaluation
   tests/         pytest suite (runs in CI against a real Postgres)
+frontend/        the website (static HTML, CSS, JavaScript)
 docker-compose.yml   optional local Postgres
 .github/workflows/   CI: lint, migrations up/down/up, tests
 ```
