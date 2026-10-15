@@ -143,7 +143,7 @@ def _amounts(ingredients: list[Ingredient], key: int) -> tuple[list[Contributor]
 
 def _per_serving(ingredients, key, servings) -> tuple[float, list[Contributor], list[str]]:
     found, missing = _amounts(ingredients, key)
-    per = [Contributor(c.line, c.amount / servings) for c in found]
+    per = [Contributor(c.line, round(c.amount / servings, 2)) for c in found]
     per.sort(key=lambda c: -c.amount)
     return sum(c.amount for c in per), per, missing
 
@@ -346,7 +346,7 @@ def check_budget(ingredients: list[Ingredient], servings: float,
     else:
         status = "fits"
         message = f"About {dollars} per serving fits your ${budget / 100:,.2f} budget."
-    message += " Prices are USDA national averages adjusted for inflation."
+    message += " Prices are estimates from USDA and BLS national averages."
     return BudgetCheck(profile.currency, cost if costs or not missing else None, budget,
                        status, message, top, missing)
 

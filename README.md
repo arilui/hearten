@@ -81,9 +81,21 @@ python -m scripts.eval_matching     # needs the downloaded USDA data
 - **Diet**: requirements and the 9 major allergens become exclusions over food tags; halal and kosher add "check certification" notes, and kosher also catches meat with dairy.
 - Missing data is never counted as zero: results say "incomplete" instead.
 
-Try it against your database:
+Try it against your database from the command line, or through the API:
 
 ```bash
 python -m scripts.check_recipe data/examples/chicken_stir_fry.txt --servings 4 \
     --condition hypertension --budget 4.00 --diet halal
+```
+
+## API
+
+`POST /check` takes the pasted recipe, the number of servings and a profile, and returns each line's matched food and grams plus the full check. Nothing sent is stored. With the dev server running (`uvicorn app.main:app --reload`), interactive docs are at http://127.0.0.1:8000/docs.
+
+```json
+{
+  "recipe": "1 lb chicken breast\n2 tbsp soy sauce\n1 cup long-grain white rice",
+  "servings": 4,
+  "profile": {"conditions": ["hypertension"], "diets": ["halal"], "budget_minor_per_meal": 400}
+}
 ```
