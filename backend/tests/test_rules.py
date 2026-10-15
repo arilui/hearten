@@ -247,3 +247,10 @@ def test_alcohol_line_only_when_the_recipe_has_alcohol():
     assert "alcohol" not in keys
     keys = {c.key for c in check_recipe([ing("wine", 100, alcohol=10)], 1, HT).nutrients}
     assert "alcohol" in keys
+
+
+def test_certification_notes_are_specific_to_each_line():
+    checks = check_diet([CHICKEN, VANILLA], Profile(diets={"halal"}))[0]
+    reasons = {c.line: c.reason for c in checks.to_check}
+    assert reasons["chicken breast"] == "Check that the meat is certified halal."
+    assert "alcohol" in reasons["vanilla extract"]

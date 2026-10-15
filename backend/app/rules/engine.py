@@ -382,8 +382,10 @@ def check_diet(ingredients: list[Ingredient], profile: Profile) -> list[DietChec
             hit = ing.tags & req.excludes
             if hit:
                 conflicts.append(Conflict(ing.line, "contains " + ", ".join(sorted(hit))))
-            elif ing.tags & req.check and not profile.buys_certified:
-                to_check.append(Conflict(ing.line, req.check_note))
+            elif not profile.buys_certified:
+                reasons = [req.check[t] for t in sorted(ing.tags) if t in req.check]
+                if reasons:
+                    to_check.append(Conflict(ing.line, reasons[0]))
         if name == "kosher":
             meat = [i.line for i in matched if i.tags & KOSHER_MEAT]
             dairy = [i.line for i in matched if "dairy" in i.tags]
@@ -405,7 +407,7 @@ def check_diet(ingredients: list[Ingredient], profile: Profile) -> list[DietChec
             message = (f"No conflicts found, but {len(unmatched)} ingredient(s) couldn't be "
                        f"identified, so they weren't checked.")
         elif to_check:
-            status, message = "check", req.check_note
+            status, message = "check", "Some ingredients need a certification check."
         else:
             status, message = "fits", f"Fits {req.label.lower()} as far as the data shows."
         results.append(DietCheck(req.label, status, message, conflicts, to_check,

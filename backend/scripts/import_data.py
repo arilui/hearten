@@ -273,13 +273,27 @@ def add_sr_legacy(base: Tables, sr: dict[str, pd.DataFrame], input_food: pd.Data
         "amount_per_100g": fn["amount"],
     }).drop_duplicates(subset=["food_code", "nutrient_id"])
 
+    links = sr_legacy.single_ingredient_links(input_food, foods,
+                                              fndds_foods[["fdc_id", "description"]])
+    links = links.merge(fndds_foods[["fdc_id", "food_code"]]
+                        .rename(columns={"fdc_id": "fndds_fdc_id"}), on="fndds_fdc_id")
+
+    # Added sugars: the rule first; where it can't tell ("Soy sauce", "Catsup"),
+    # the FPED value of single-ingredient FNDDS foods made from that SR food.
+    fped_added = base.food_nutrient[base.food_nutrient["nutrient_id"] == ADDED_SUGARS_ID]
+    fped_added = (links.merge(fped_added, on="food_code")
+                  .groupby("sr_fdc_id")["amount_per_100g"].median())
     sugars = food_nutrient[food_nutrient["nutrient_id"] == TOTAL_SUGARS_NBR]
     sugars = sugars.set_index("food_code")["amount_per_100g"]
     added = []
     for row in foods.itertuples(index=False):
         total = sugars.get(row.fdc_id)
-        value = sr_legacy.sr_added_sugars(row.description, row.category_id,
-                                          None if pd.isna(total) else float(total))
+        total = None if total is None or pd.isna(total) else float(total)
+        value = sr_legacy.sr_added_sugars(row.description, row.category_id, total)
+        if value is None and row.fdc_id in fped_added.index:
+            value = float(fped_added[row.fdc_id])
+            if total is not None:
+                value = min(value, total)  # added sugars can't exceed total sugars
         if value is not None:
             added.append({"food_code": row.fdc_id, "nutrient_id": ADDED_SUGARS_ID,
                           "amount_per_100g": round(value, 4)})
@@ -301,7 +315,7 @@ def add_sr_legacy(base: Tables, sr: dict[str, pd.DataFrame], input_food: pd.Data
         "gram_weight": portions["gram_weight"],
     })
 
-    food_price = _sr_prices(foods, input_food, fndds_foods, base.food_price)
+    food_price = _sr_prices(links, base.food_price)
 
     return Tables(
         food=pd.concat([base.food, food], ignore_index=True),
@@ -312,13 +326,11 @@ def add_sr_legacy(base: Tables, sr: dict[str, pd.DataFrame], input_food: pd.Data
     )
 
 
-def _sr_prices(foods: pd.DataFrame, input_food: pd.DataFrame, fndds_foods: pd.DataFrame,
-               fndds_prices: pd.DataFrame) -> pd.DataFrame:
-    """Median price of the single-ingredient FNDDS foods made from each SR food."""
-    links = sr_legacy.single_ingredient_links(input_food, foods,
-                                              fndds_foods[["fdc_id", "description"]])
-    links = links.merge(fndds_foods[["fdc_id", "food_code"]]
-                        .rename(columns={"fdc_id": "fndds_fdc_id"}), on="fndds_fdc_id")
+def _sr_prices(links: pd.DataFrame, fndds_prices: pd.DataFrame) -> pd.DataFrame:
+    """
+    Median price of the single-ingredient FNDDS foods made from each SR food.
+    links: sr_fdc_id, food_code (of the FNDDS food).
+    """
     priced = links.merge(fndds_prices, on="food_code")
     if priced.empty:
         return fndds_prices.iloc[0:0]

@@ -26,6 +26,7 @@ RAW = Path(__file__).parent / "fixtures" / "raw"
 EVAL_LINES = Path(__file__).parents[1] / "data" / "eval" / "ingredient_lines.csv"
 
 MILK, KALE, SUGAR, CHICKEN, PEACHES, BABYFOOD = 171265, 168421, 169655, 171077, 169108, 167900
+WINE = 173190
 
 
 @pytest.fixture(scope="module")
@@ -59,7 +60,7 @@ def test_portions_are_described_like_fndds_and_ordered(sr):
 
 def test_usage_counts_link_by_ndb_number(sr):
     usage = sr_legacy.usage_counts(read_input_food(RAW / "fndds"), sr["foods"])
-    assert usage == {MILK: 1, KALE: 1}
+    assert usage == {MILK: 1, KALE: 1, WINE: 1}
 
 
 # ------------------------------------------------------------ added sugars --
@@ -107,6 +108,8 @@ def test_sr_added_sugars_rows(tables):
     assert added.loc[SUGAR] == pytest.approx(99.8)
     assert added.loc[KALE] == 0.0
     assert PEACHES not in added.index  # unknown, so no row rather than a guess
+    # The rule can't tell for wine; FNDDS "Wine, red" (made of it) has FPED's 0 g.
+    assert added.loc[WINE] == 0.0
 
 
 def test_prices_carry_over_from_single_ingredient_fndds_foods(tables):
@@ -142,7 +145,7 @@ def test_load_with_sr_foods(tables, db_engine):
             "SELECT source, count(*) FROM food GROUP BY source")).all())
         uses = conn.execute(text(
             f"SELECT recipe_uses FROM food WHERE food_code = {MILK}")).scalar()
-    assert rows == {"fndds": 3, "sr_legacy": 5}
+    assert rows == {"fndds": 3, "sr_legacy": 6}
     assert uses == 1
 
 

@@ -57,6 +57,6 @@ INSULIN_ALCOHOL_NOTE = (
 )
 LABEL_REMINDER = "Always check product labels; recipes and brands vary."
 ESTIMATE_NOTE = (
-    "Nutrients and costs are estimates from USDA data. Results compare this recipe with "
+    "Nutrients and costs are estimates from USDA and BLS data. Results compare this recipe with "
     "published guidelines and aren't medical advice."
 )

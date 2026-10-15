@@ -7,6 +7,7 @@ an egg allergy gives lacto-vegetarian. The app can rule ingredients out; it
 can't certify a dish as safe, halal or kosher, and it says so.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 
@@ -14,9 +15,8 @@ from dataclasses import dataclass, field
 class Requirement:
     label: str
     excludes: frozenset[str]
-    # Tags that don't rule a food out but need a check ("check certification").
-    check: frozenset[str] = field(default_factory=frozenset)
-    check_note: str = ""
+    # Tags that don't rule a food out but need a check, with what to check.
+    check: Mapping[str, str] = field(default_factory=dict)
     cant_know: str = ""
 
 
@@ -37,15 +37,18 @@ DIETS: dict[str, Requirement] = {
         cant_know="Branded products can contain beef-derived additives."),
     "halal": Requirement(
         "Halal", frozenset({"pork", "nonhalal_animal", "gelatin", "alcohol"}),
-        check=frozenset({"meat", "beef", "poultry", "alcohol_trace"}),
-        check_note="Check certification: whether meat was slaughtered to halal standards, "
-                   "and whether flavor extracts contain alcohol.",
+        check={**dict.fromkeys(("meat", "beef", "poultry"),
+                               "Check that the meat is certified halal."),
+               "alcohol_trace": "Flavor extracts can contain alcohol; check the label or "
+                                "use an alcohol-free version."},
         cant_know="Whether meat was slaughtered to halal standards."),
     "kosher": Requirement(
         "Kosher", frozenset({"pork", "nonhalal_animal", "crustacean", "mollusk",
                              "nonkosher_fish", "gelatin"}),
-        check=frozenset({"meat", "beef", "poultry", "alcohol", "alcohol_trace"}),
-        check_note="Check certification for meat, poultry, wine and processed foods.",
+        check={**dict.fromkeys(("meat", "beef", "poultry"),
+                               "Check that the meat or poultry is certified kosher."),
+               "alcohol": "Check that the wine or spirit is certified kosher.",
+               "alcohol_trace": "Check that the extract is certified kosher."},
         cant_know="Whether meat, wine and processed foods are certified."),
     "gluten_free": Requirement(
         "Gluten-free", frozenset({"gluten"}),
