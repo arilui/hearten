@@ -29,6 +29,8 @@
   --radius-panel: 14px;
 }
 
+/* Dark theme: follows the system setting unless the person picks one with the
+   toggle (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --paper: #0f1d1c;
@@ -46,6 +48,22 @@
     --pom: #e0788f;
     --focus: #8fb0ff;
   }
+}
+:root[data-theme="dark"] {
+    --paper: #0f1d1c;
+    --surface: #152826;
+    --ink: #e4efec;
+    --ink-soft: #a7bfbb;
+    --line: #2c4441;
+    --teal: #6cc4b8;
+    --teal-wash: #173a36;
+    --amber: #f0b45a;
+    --amber-wash: #3b2c12;
+    --violet: #aaa9f2;
+    --violet-wash: #26264a;
+    --grey-wash: #1d2f2d;
+    --pom: #e0788f;
+    --focus: #8fb0ff;
 }
 
 * { box-sizing: border-box; }
@@ -85,7 +103,20 @@ a { color: var(--teal); }
   max-width: 1180px;
   margin: 0 auto;
   padding: 2.5rem 1rem 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 1rem;
+  align-items: start;
 }
+.masthead .tagline { grid-column: 1 / -1; }
+.theme-toggle {
+  font: inherit; font-size: var(--step--1);
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  color: var(--ink); background: var(--surface);
+  border: 1.5px solid var(--line); border-radius: 999px;
+  padding: 0.4rem 0.85rem; margin-top: 0.5rem; cursor: pointer;
+}
+.theme-toggle svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2; }
 .wordmark {
   display: flex; align-items: center; gap: 0.55rem;
   font-family: var(--serif); font-size: var(--step-3); letter-spacing: -0.01em;

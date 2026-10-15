@@ -346,6 +346,33 @@ function dietSection(diet) {
       d.cant_know ? el("p", { class: "check-detail", text: `Can't be known from a recipe: ${d.cant_know}` }) : null)));
 }
 
+// -------------------------------------------------------------------- theme
+
+const themeToggle = document.getElementById("theme-toggle");
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+function currentTheme() {
+  return document.documentElement.dataset.theme || (systemDark.matches ? "dark" : "light");
+}
+
+// The button names the theme it switches to.
+function paintToggle() {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  themeToggle.querySelector("span").textContent = next === "dark" ? "Dark mode" : "Light mode";
+  themeToggle.querySelector(".icon-moon").style.display = next === "dark" ? "" : "none";
+  themeToggle.querySelector(".icon-sun").style.display = next === "light" ? "" : "none";
+  themeToggle.setAttribute("aria-label", `Switch to ${next} mode`);
+}
+
+themeToggle.addEventListener("click", () => {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("hearten:theme", next); } catch { /* not remembered */ }
+  paintToggle();
+});
+systemDark.addEventListener("change", paintToggle);
+paintToggle();
+
 // ------------------------------------------------------------------- start
 
 restoreForm();
