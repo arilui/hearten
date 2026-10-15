@@ -1,0 +1,5 @@
+# test mapping
+series_id,item,unit,grams_per_unit,fdc_id,sr_description
+APU0000701111,"Flour, white, all purpose",lb,453.592,168894,"Wheat flour, white, all-purpose, enriched, bleached"
+APU0000708111,"Eggs, grade A, large",dozen,600,171265,"Milk, stand-in for the test"
+APU0000714231,"Tomatoes, canned, whole",lb,453.592,168421,"Kale, stand-in for a stale series"

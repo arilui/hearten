@@ -16,6 +16,9 @@ Sources and how they join
 - PP-NAP: national average price per 100 edible g, by food code. The latest
   period (2017/2018) is used and adjusted to today's dollars with the CPI.
 - CPI (BLS CUUR0000SAF11, food at home): monthly index for that adjustment.
+- BLS average retail prices (via FRED): current prices for staples PP-NAP
+  doesn't cover (flour, uncooked rice, dry pasta, eggs...), mapped to SR foods
+  in data/bls_staples.csv. They replace any estimate carried over from FNDDS.
 - SR Legacy (April 2018): plain recipe ingredients, keyed by fdc_id. Added
   sugars come from a rule (scripts/sr_legacy.py) and prices are carried over
   from FNDDS foods made of essentially that one ingredient; see sr_legacy.py.
@@ -25,7 +28,7 @@ price row; the importer reports how many.
 """
 
 import io
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pandas as pd
@@ -34,6 +37,10 @@ from app import nutrients
 from scripts import sr_legacy
 
 RAW = Path(__file__).resolve().parents[2] / "data" / "raw"
+BLS_STAPLES = Path(__file__).resolve().parents[1] / "data" / "bls_staples.csv"
+# A BLS series whose latest value is this many months older than the newest one
+# in the file has stopped updating, so it isn't used.
+BLS_MAX_STALENESS_MONTHS = 18
 
 # Nutrients that exist only in FPED get ids far above FoodData Central's own.
 ADDED_SUGARS_ID = nutrients.ADDED_SUGARS_G
@@ -122,6 +129,50 @@ def read_sr(folder: Path) -> dict[str, pd.DataFrame]:
 
 def read_input_food(fndds_folder: Path) -> pd.DataFrame:
     return pd.read_csv(next(fndds_folder.rglob("input_food.csv")), low_memory=False)
+
+
+def read_bls_prices(prices_path: Path, mapping_path: Path = BLS_STAPLES) -> pd.DataFrame:
+    """
+    Staple prices per 100 g, in cents, from BLS average retail prices.
+
+    prices_path: FRED CSV with observation_date and one column per series.
+    mapping_path: series -> SR food, with grams per purchase unit.
+    """
+    mapping = pd.read_csv(mapping_path, comment="#")
+    prices = pd.read_csv(prices_path, parse_dates=["observation_date"])
+    newest = prices["observation_date"].max()
+    rows = []
+    for series, group in mapping.groupby("series_id", sort=False):
+        if series not in prices.columns:
+            continue
+        values = pd.to_numeric(prices[series], errors="coerce")
+        known = prices.loc[values.notna(), "observation_date"]
+        if known.empty:
+            continue
+        date = known.max()
+        months_old = (newest.year - date.year) * 12 + newest.month - date.month
+        if months_old > BLS_MAX_STALENESS_MONTHS:
+            continue
+        dollars = float(values[prices["observation_date"] == date].iloc[0])
+        for m in group.itertuples(index=False):
+            rows.append({
+                "food_code": int(m.fdc_id),
+                "currency": PRICE_CURRENCY,
+                "amount_minor_per_100g": round(dollars * 100 / m.grams_per_unit * 100, 4),
+                "source": f"BLS average price {series} ({m.item}, per {m.unit})",
+                "price_period": f"{date:%Y-%m}",
+            })
+    return pd.DataFrame(rows, columns=["food_code", "currency", "amount_minor_per_100g",
+                                       "source", "price_period"])
+
+
+def apply_staple_prices(tables: Tables, staples: pd.DataFrame) -> Tables:
+    """Staple prices replace other estimates for the same food."""
+    staples = staples[staples["food_code"].isin(tables.food["food_code"])]
+    keep = ~tables.food_price.set_index(["food_code", "currency"]).index.isin(
+        staples.set_index(["food_code", "currency"]).index)
+    return replace(tables, food_price=pd.concat([tables.food_price[keep], staples],
+                                                ignore_index=True))
 
 
 # ------------------------------------------------------------- transforms ----
@@ -371,6 +422,9 @@ def main() -> None:
                            fndds["food"][["fdc_id", "description"]]
                            .merge(fndds["survey_fndds_food"][["fdc_id", "food_code"]],
                                   on="fdc_id"))
+    staples = read_bls_prices(RAW / "bls_average_prices.csv")
+    tables = apply_staple_prices(tables, staples)
+    print(f"Staple prices (BLS): {len(staples)} foods")
     print(f"Prices: {label}")
     print(coverage_report(tables))
     print("Loading into the database...", flush=True)

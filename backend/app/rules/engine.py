@@ -241,8 +241,10 @@ def check_nutrients(ingredients: list[Ingredient], servings: float,
             contributors=[c for c in contrib if c.amount > 0][:3], missing_data=missing,
             source=G.NIH_POTASSIUM, notes=[G.POTASSIUM_CAUTION]))
 
-    if profile.conditions:
-        checks.append(_alcohol_check(ingredients, servings, profile, sex, has_ht, has_t2d))
+    # Alcohol is only shown when the recipe has some; "0 drinks" on every recipe is noise.
+    alcohol = _alcohol_check(ingredients, servings, profile, sex, has_ht, has_t2d)
+    if profile.conditions and alcohol.per_serving > 0:
+        checks.append(alcohol)
     return checks
 
 

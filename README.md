@@ -52,6 +52,7 @@ Food, nutrient, price and added-sugar data come from USDA FoodData Central (FNDD
 
 - **FNDDS** describes foods as eaten ("Chicken breast, baked") and carries prices and added sugars.
 - **SR Legacy** supplies plain recipe ingredients that FNDDS lacks (flour, salt, spices, dry pasta, raw chicken, broth). SR doesn't report added sugars, so a rule fills them in: sweeteners count fully, plain produce/meat/grains count zero, and anything unclear is left unknown. Prices carry over from FNDDS foods made of essentially that one ingredient.
+- **BLS average retail prices** (monthly, via FRED) price staples the survey data misses, such as flour, uncooked rice, dry pasta, eggs, milk and dried beans (`backend/data/bls_staples.csv`). Cooking oil, salt and spices have no public average price, so they show as "price unavailable" unless the user enters their own.
 
 ## Ingredient matching
 

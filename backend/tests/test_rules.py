@@ -232,7 +232,7 @@ def test_everything_fits():
     r = check_recipe(food, 1, profile)
     assert {c.key: c.status for c in r.nutrients} == {
         "sodium": "fits", "added_sugars": "fits", "carbohydrate": "info",
-        "fiber": "below_goal", "potassium": "progress", "alcohol": "fits"}
+        "fiber": "below_goal", "potassium": "progress"}  # no alcohol, so no alcohol line
     assert r.fits_plan is True  # goals below target are shown, never failures
     assert r.summary == "This recipe fits your plan."
 
@@ -240,3 +240,10 @@ def test_everything_fits():
 def test_servings_must_be_positive():
     with pytest.raises(ValueError):
         check_recipe([RICE], 0, Profile())
+
+
+def test_alcohol_line_only_when_the_recipe_has_alcohol():
+    keys = {c.key for c in check_recipe([ing("rice", 100, alcohol=0)], 1, HT).nutrients}
+    assert "alcohol" not in keys
+    keys = {c.key for c in check_recipe([ing("wine", 100, alcohol=10)], 1, HT).nutrients}
+    assert "alcohol" in keys

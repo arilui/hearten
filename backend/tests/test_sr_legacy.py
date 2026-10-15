@@ -197,3 +197,33 @@ def test_eval_set_is_well_formed():
     assert not lines["line"].duplicated().any()
     for pattern in lines["accept"]:
         re.compile(pattern)
+
+
+# ------------------------------------------------------------ staple prices --
+
+def test_bls_prices_use_the_latest_month_and_skip_stale_series():
+    from scripts.import_data import read_bls_prices
+
+    staples = read_bls_prices(RAW / "bls_average_prices.csv",
+                              Path(__file__).parent / "fixtures" / "bls_staples.csv")
+    price = staples.set_index("food_code")
+    # $0.60 per lb -> 60 cents / 453.592 g -> 13.2277 cents per 100 g
+    assert price.loc[168894, "amount_minor_per_100g"] == pytest.approx(13.2277, abs=1e-3)
+    assert price.loc[168894, "price_period"] == "2026-08"
+    # $3.00 per dozen eggs, 600 g -> 50 cents per 100 g
+    assert price.loc[MILK, "amount_minor_per_100g"] == pytest.approx(50.0)
+    assert KALE not in price.index  # series ended in 1988
+
+
+def test_staple_prices_replace_carried_over_estimates(tables):
+    from scripts.import_data import apply_staple_prices, read_bls_prices
+
+    staples = read_bls_prices(RAW / "bls_average_prices.csv",
+                              Path(__file__).parent / "fixtures" / "bls_staples.csv")
+    before = tables.food_price.set_index("food_code")["amount_minor_per_100g"]
+    assert MILK in before.index and before.loc[MILK] != pytest.approx(50.0)
+    updated = apply_staple_prices(tables, staples).food_price
+    milk = updated[updated.food_code == MILK]
+    assert len(milk) == 1
+    assert milk["amount_minor_per_100g"].item() == pytest.approx(50.0)
+    assert milk["source"].item().startswith("BLS average price")

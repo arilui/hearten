@@ -11,12 +11,21 @@ The inspect output is what the import scripts are written against.
 """
 
 import argparse
+import csv
 import sys
 import urllib.request
 import zipfile
 from pathlib import Path
 
 RAW = Path(__file__).resolve().parents[2] / "data" / "raw"
+BLS_STAPLES = Path(__file__).resolve().parents[1] / "data" / "bls_staples.csv"
+
+
+def bls_series_ids() -> list[str]:
+    """The BLS average-price series named in data/bls_staples.csv, in order."""
+    with BLS_STAPLES.open(encoding="utf-8") as f:
+        rows = csv.DictReader(line for line in f if not line.startswith("#"))
+        return list(dict.fromkeys(row["series_id"] for row in rows))
 
 SOURCES = {
     # FNDDS 2021-2023 (survey foods) from FoodData Central, released October 2024.
@@ -33,6 +42,11 @@ SOURCES = {
     "purchase-to-plate-national-average-prices-for-nhanes-csv-format.zip?v=87915",
     # CPI, food at home, U.S. city average (monthly).
     "cpi_food_at_home.csv": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CUUR0000SAF11",
+    # BLS average retail prices for staples PP-NAP doesn't cover (flour, uncooked
+    # rice, dry pasta, eggs...), monthly, one column per series. Delete the file and
+    # re-run to refresh prices.
+    "bls_average_prices.csv": "https://fred.stlouisfed.org/graph/fredgraph.csv?id="
+    + ",".join(bls_series_ids()),
 }
 
 MANUAL_PAGES = {
@@ -42,6 +56,8 @@ MANUAL_PAGES = {
     "beltsville-human-nutrition-research-center/food-surveys-research-group/docs/fped-databases/",
     "ppnap.zip": "https://www.ers.usda.gov/data-products/purchase-to-plate (PP-NAP, CSV)",
     "cpi_food_at_home.csv": "https://fred.stlouisfed.org/series/CUUR0000SAF11 (Download, CSV)",
+    "bls_average_prices.csv": "each series in backend/data/bls_staples.csv at "
+    "https://fred.stlouisfed.org/series/<series_id> (Download, CSV), combined by date",
 }
 
 
