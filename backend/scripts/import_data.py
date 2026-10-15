@@ -422,9 +422,14 @@ def main() -> None:
                            fndds["food"][["fdc_id", "description"]]
                            .merge(fndds["survey_fndds_food"][["fdc_id", "food_code"]],
                                   on="fdc_id"))
-    staples = read_bls_prices(RAW / "bls_average_prices.csv")
-    tables = apply_staple_prices(tables, staples)
-    print(f"Staple prices (BLS): {len(staples)} foods")
+    bls_file = RAW / "bls_average_prices.csv"
+    if bls_file.exists():
+        staples = read_bls_prices(bls_file)
+        tables = apply_staple_prices(tables, staples)
+        print(f"Staple prices (BLS): {len(staples)} foods")
+    else:
+        print(f"Staple prices (BLS): skipped, {bls_file.name} not found "
+              "(run python -m scripts.download_data)")
     print(f"Prices: {label}")
     print(coverage_report(tables))
     print("Loading into the database...", flush=True)

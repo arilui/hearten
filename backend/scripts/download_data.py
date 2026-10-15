@@ -12,7 +12,9 @@ The inspect output is what the import scripts are written against.
 
 import argparse
 import csv
+import io
 import sys
+import time
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -42,12 +44,14 @@ SOURCES = {
     "purchase-to-plate-national-average-prices-for-nhanes-csv-format.zip?v=87915",
     # CPI, food at home, U.S. city average (monthly).
     "cpi_food_at_home.csv": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CUUR0000SAF11",
-    # BLS average retail prices for staples PP-NAP doesn't cover (flour, uncooked
-    # rice, dry pasta, eggs...), monthly, one column per series. Delete the file and
-    # re-run to refresh prices.
-    "bls_average_prices.csv": "https://fred.stlouisfed.org/graph/fredgraph.csv?id="
-    + ",".join(bls_series_ids()),
 }
+
+# BLS average retail prices for staples PP-NAP doesn't cover (flour, uncooked rice,
+# dry pasta, eggs...), monthly. Each series is fetched on its own (FRED can time out
+# building a combined file) and saved together, one column per series. Delete the
+# file and re-run to refresh prices.
+BLS_FILE = "bls_average_prices.csv"
+FRED_CSV = "https://fred.stlouisfed.org/graph/fredgraph.csv?id="
 
 MANUAL_PAGES = {
     "fndds.zip": "https://fdc.nal.usda.gov/download-datasets (FNDDS 2021-2023, CSV)",
@@ -61,6 +65,49 @@ MANUAL_PAGES = {
 }
 
 
+def fetch(url: str, timeout: int = 120, attempts: int = 3) -> bytes:
+    """GET with a few retries, since public data sites time out now and then."""
+    headers = {"User-Agent": "Mozilla/5.0 hearten-data"}
+    for attempt in range(1, attempts + 1):
+        try:
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                return response.read()
+        except Exception:
+            if attempt == attempts:
+                raise
+            time.sleep(3 * attempt)
+    raise AssertionError("unreachable")
+
+
+def download_bls_prices(target: Path) -> bool:
+    """Fetch each BLS series from FRED and save them as one CSV keyed by date."""
+    columns: dict[str, dict[str, str]] = {}
+    failed = []
+    for series in bls_series_ids():
+        try:
+            text = fetch(FRED_CSV + series, timeout=60).decode("utf-8")
+        except Exception as e:
+            failed.append(series)
+            print(f"  FAILED {series}: {e}")
+            continue
+        rows = list(csv.reader(io.StringIO(text)))
+        columns[series] = {date: value for date, value in rows[1:] if value not in ("", ".")}
+        print(f"  got {series}", flush=True)
+    if columns:
+        dates = sorted({d for values in columns.values() for d in values})
+        with target.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["observation_date", *columns])
+            for d in dates:
+                writer.writerow([d, *(columns[s].get(d, "") for s in columns)])
+    if failed:
+        print(f"  {len(failed)} series failed; re-run later to retry them "
+              f"(delete {target.name} first), or download by hand from "
+              f"{MANUAL_PAGES[BLS_FILE]}")
+    return not failed
+
+
 def download() -> bool:
     RAW.mkdir(parents=True, exist_ok=True)
     ok = True
@@ -71,15 +118,18 @@ def download() -> bool:
             continue
         print(f"download  {name} ...", flush=True)
         try:
-            headers = {"User-Agent": "Mozilla/5.0 hearten-data"}
-            request = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(request, timeout=300) as response:
-                target.write_bytes(response.read())
+            target.write_bytes(fetch(url, timeout=300))
         except Exception as e:  # report every failure, then keep going
             ok = False
             print(f"  FAILED: {e}")
             print(f"  Download it by hand from {MANUAL_PAGES[name]}")
             print(f"  and save it as {target}")
+    target = RAW / BLS_FILE
+    if target.exists():
+        print(f"have      {BLS_FILE}")
+    else:
+        print(f"download  {BLS_FILE} (one series at a time) ...", flush=True)
+        ok = download_bls_prices(target) and ok
     for name in ("fndds.zip", "sr_legacy.zip", "ppnap.zip"):
         path = RAW / name
         if path.exists():
