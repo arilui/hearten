@@ -22,6 +22,18 @@ variable "github_repository" {
   default     = "arilui/hearten"
 }
 
+variable "github_owner_id" {
+  description = "Numeric GitHub account ID of the repo owner. GitHub's OIDC subject now includes it (repo:owner@id/repo@id:...), which keeps the trust tied to this account even if a name is reused."
+  type        = string
+  default     = "152670736"
+}
+
+variable "github_repository_id" {
+  description = "Numeric GitHub repository ID (see github_owner_id)."
+  type        = string
+  default     = "1416514584"
+}
+
 variable "create_github_oidc_provider" {
   description = "AWS allows one GitHub OIDC provider per account. Set false if your account already has one (for example, from another project's deploys)."
   type        = bool

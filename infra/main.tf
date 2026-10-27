@@ -5,7 +5,7 @@ data "aws_region" "current" {}
 locals {
   name = "hearten-api"
   # Built from the name rather than read, so the secret never enters Terraform state.
-  database_url_parameter_arn = "arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter${var.database_url_parameter}"
+  database_url_parameter_arn = "arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:parameter${var.database_url_parameter}"
 }
 
 # ------------------------------------------------------------------ Lambda --
@@ -133,6 +133,13 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 locals {
+  github_owner    = split("/", var.github_repository)[0]
+  github_repo     = split("/", var.github_repository)[1]
+  # GitHub's subject format with immutable IDs, plus the older name-only format.
+  github_subjects = [
+    "repo:${local.github_owner}@${var.github_owner_id}/${local.github_repo}@${var.github_repository_id}:ref:refs/heads/main",
+    "repo:${var.github_repository}:ref:refs/heads/main",
+  ]
   github_oidc_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
 }
 
@@ -149,7 +156,7 @@ resource "aws_iam_role" "deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = local.github_subjects
         }
       }
     }]
