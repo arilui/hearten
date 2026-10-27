@@ -6,9 +6,33 @@ Meals that fit your health, your budget, and your table.
 
 Hearten checks recipes against published guidelines for hypertension and type 2 diabetes, estimates cost per serving, and respects dietary requirements such as vegetarian, halal, kosher, gluten-free and common allergies.
 
-Educational only; not medical advice. Personal targets come from your care team.
+Paste a recipe and Hearten matches each ingredient line to USDA food data, works out grams, and checks each serving against the plan you choose:
 
-**Status:** in development (version 1: recipe checker).
+- **Health guidelines** for high blood pressure and type 2 diabetes (NHLBI, ACC/AHA, ADA, FDA), applied per meal, with the ingredients behind any flag
+- **Budget**: estimated cost per serving against a per-meal budget
+- **What you eat**: vegetarian, vegan, pescatarian, no beef, halal, kosher, gluten-free, dairy-free, alcohol-free, the 9 major allergens, and anything else you name
+
+Educational only; not medical advice. Personal targets come from your care team. Nothing you enter is stored.
+
+![Hearten results: a verdict, per-serving nutrients against a meal's share, budget, dietary checks, and the recipe annotated line by line](docs/screenshot.png)
+
+**Status:** version 1 (the recipe checker) is live. Version 2 is a weekly meal planner that uses optimization on top of the same engine.
+
+## Architecture
+
+```text
+Browser ── Vercel (static site: frontend/)
+   │  POST /check
+   ▼
+API Gateway (HTTP API, rate-limited) ── AWS Lambda (FastAPI, Python 3.13)
+                                            │  food catalogue loaded once per container
+                                            ▼
+                                       Neon Postgres (12,213 USDA foods)
+```
+
+- **Infrastructure as code**: `infra/` (Terraform) defines the Lambda, the HTTP API with throttling, logs, and IAM.
+- **Secrets**: the database connection string lives in AWS SSM Parameter Store (encrypted); Terraform only builds its ARN, so it never enters code, state or GitHub.
+- **CI/CD**: every push runs lint, migrations up/down/up, tests against a real Postgres, Terraform format/validate, and a Lambda package build. On `main`, GitHub Actions deploys through short-lived OIDC credentials scoped to updating this one function, then smoke-tests the live API. Vercel redeploys the site.
 
 ---
 
@@ -55,8 +79,9 @@ backend/
   data/eval/     labeled recipe lines for the matching evaluation
   tests/         pytest suite (runs in CI against a real Postgres)
 frontend/        the website (static HTML, CSS, JavaScript)
+infra/           Terraform: Lambda, HTTP API, IAM, GitHub deploy role
 docker-compose.yml   optional local Postgres
-.github/workflows/   CI: lint, migrations up/down/up, tests
+.github/workflows/   CI and deploys
 ```
 
 ## Data sources
@@ -65,7 +90,7 @@ Food, nutrient, price and added-sugar data come from USDA FoodData Central (FNDD
 
 - **FNDDS** describes foods as eaten ("Chicken breast, baked") and carries prices and added sugars.
 - **SR Legacy** supplies plain recipe ingredients that FNDDS lacks (flour, salt, spices, dry pasta, raw chicken, broth). SR doesn't report added sugars, so a rule fills them in: sweeteners count fully, plain produce/meat/grains count zero, and anything unclear is left unknown. Prices carry over from FNDDS foods made of essentially that one ingredient.
-- **BLS average retail prices** (monthly, via FRED) price staples the survey data misses, such as flour, uncooked rice, dry pasta, eggs, milk and dried beans (`backend/data/bls_staples.csv`). Cooking oil, salt and spices have no public average price, so they show as "price unavailable" unless the user enters their own.
+- **BLS average retail prices** (monthly, from the BLS public API) price staples the survey data misses, such as flour, uncooked rice, dry pasta, eggs, milk and dried beans (`backend/data/bls_staples.csv`). Cooking oil, salt and spices have no public average price, so they show as "price unavailable" unless the user enters their own.
 
 ## Ingredient matching
 
@@ -112,3 +137,20 @@ python -m scripts.check_recipe data/examples/chicken_stir_fry.txt --servings 4 \
   "profile": {"conditions": ["hypertension"], "diets": ["halal"], "budget_minor_per_meal": 400}
 }
 ```
+
+## Deploying
+
+One-time setup (AWS CLI signed in, Terraform installed):
+
+```bash
+# 1. Store the database connection string, encrypted
+aws ssm put-parameter --name /hearten/database_url --type SecureString --value "<connection string>"
+
+# 2. Create the AWS resources
+cd infra
+terraform init
+terraform apply        # set create_github_oidc_provider = false in terraform.tfvars if your account has one
+```
+
+Then add two GitHub repository variables from the Terraform outputs: `AWS_DEPLOY_ROLE_ARN` (`deploy_role_arn`) and `API_URL` (`api_url`). From then on, every push to `main` that passes CI deploys the API. The website is a Vercel project with `frontend/` as its root directory.
+
