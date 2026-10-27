@@ -1,5 +1,7 @@
 # Hearten
 
+**Live:** https://hearten-frontend.vercel.app
+
 Meals that fit your health, your budget, and your table.
 
 Hearten checks recipes against published guidelines for hypertension and type 2 diabetes, estimates cost per serving, and respects dietary requirements such as vegetarian, halal, kosher, gluten-free and common allergies.

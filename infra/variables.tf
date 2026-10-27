@@ -13,7 +13,7 @@ variable "database_url_parameter" {
 variable "allowed_origins" {
   description = "Website origins allowed to call the API (CORS)."
   type        = list(string)
-  default     = ["http://localhost:3000"]
+  default     = ["http://localhost:3000", "https://hearten-frontend.vercel.app"]
 }
 
 variable "github_repository" {
